@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 
-def fit(train_loader, val_loader, model, loss1_fn, loss2_fn, optimizer, scheduler, n_epochs, log_interval,metrics=[],start_epoch=0):
+def fit(train_loader, val_loader, test_loader, model, loss1_fn, loss2_fn, optimizer, scheduler, n_epochs, log_interval, cuda, metrics=[],start_epoch=0):
     """
     Loaders, model, loss function and metrics should work together for a given task,
     i.e. The model should be able to process data output of loaders,
@@ -12,14 +12,14 @@ def fit(train_loader, val_loader, model, loss1_fn, loss2_fn, optimizer, schedule
     Siamese network: Siamese loader, siamese model, contrastive loss
     Online triplet learning: batch loader, embedding model, online triplet loss
     """
-    for epoch in range(0, start_epoch):
-        scheduler.step()
+   # for epoch in range(0, start_epoch):
+    #    scheduler.step()
 
     for epoch in range(start_epoch, n_epochs):
-        scheduler.step()
+        
 
         # Train stage
-        train_loss, metrics = train_epoch(train_loader, model, loss1_fn, loss2_fn, optimizer, log_interval, metrics)
+        train_loss, metrics = train_epoch(train_loader, model, loss1_fn, loss2_fn, optimizer,log_interval, metrics,scheduler,cuda)
 
         message = 'Epoch: {}/{}. Train set: Average loss: {:.4f}'.format(epoch + 1, n_epochs, train_loss)
         for metric in metrics:
@@ -28,7 +28,7 @@ def fit(train_loader, val_loader, model, loss1_fn, loss2_fn, optimizer, schedule
         # for metric in metrics1:
         #     message += '\t{}: {}'.format(metric.name(), metric.value())
 
-        val_loss, val_loss1, val_loss2, metrics = test_epoch(val_loader, model, loss1_fn, loss2_fn, metrics)
+        val_loss, val_loss1, val_loss2, metrics = test_epoch(val_loader, model, loss1_fn, loss2_fn, cuda, metrics)
         val_loss /= len(val_loader)
         val_loss1 /= len(val_loader)
         val_loss2 /= len(val_loader)
@@ -38,11 +38,11 @@ def fit(train_loader, val_loader, model, loss1_fn, loss2_fn, optimizer, schedule
         for metric in metrics:
             message += '\t{}: {}'.format(metric.name(), metric.value())
         print(message)
-        if epoch % 21 == 0:
+        if epoch % 2 == 0:
             #torch.save(embedding_net.state_dict(), 'shiyan.pkl')
             torch.save(model.state_dict(), 'new24.pkl')
 
-def train_epoch(train_loader, model, loss1_fn, loss2_fn, optimizer, log_interval, metrics):
+def train_epoch(train_loader, model, loss1_fn, loss2_fn, optimizer, log_interval, metrics,scheduler,cuda):
     for metric in metrics:
         metric.reset()
     # for metric in metrics1:
@@ -58,10 +58,10 @@ def train_epoch(train_loader, model, loss1_fn, loss2_fn, optimizer, log_interval
         target = target if len(target) > 0 else None
         if not type(data) in (tuple, list):
             data = (data,)
-        """if cuda:
+        if cuda:
             data = tuple(d.cuda() for d in data)
-            if target is not None:
-                target = target.cuda()"""
+            #if target is not None:
+             #   target = target.cuda()
 
         optimizer.zero_grad()
 
@@ -78,12 +78,16 @@ def train_epoch(train_loader, model, loss1_fn, loss2_fn, optimizer, log_interval
         if type(c4) not in (tuple, list):
             c4 = (c4,)
 
-        if target is not None:
-            target = (target,)
-
-
-        loss1_outputs = loss1_fn(c4[0], target[0])
-        loss2_outputs = loss2_fn(outputs[0], target[0], c2[0], c4[0])
+        #if target is None:
+         #   target = (target,)
+        target_ver=[]
+        for el in target:
+          for i in el:
+            i=list(i)
+            target_ver.append([int(a) for a in i])
+        target_ver=torch.LongTensor(target_ver)
+        loss1_outputs = loss1_fn(c4[0], target_ver,c2[0],c4[0])
+        loss2_outputs = loss2_fn(outputs[0], target_ver, c2[0], c4[0])
 
 
 
@@ -99,6 +103,7 @@ def train_epoch(train_loader, model, loss1_fn, loss2_fn, optimizer, log_interval
         total_loss += loss.item()
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
         for metric in metrics:
             metric(c4, target, loss1_outputs)
@@ -118,7 +123,7 @@ def train_epoch(train_loader, model, loss1_fn, loss2_fn, optimizer, log_interval
     return total_loss, metrics
 
 
-def test_epoch(val_loader, model, loss1_fn, loss2_fn, metrics):
+def test_epoch(val_loader, model, loss1_fn, loss2_fn, cuda, metrics):
     with torch.no_grad():
         for metric in metrics:
             metric.reset()
@@ -130,12 +135,13 @@ def test_epoch(val_loader, model, loss1_fn, loss2_fn, metrics):
             target = target if len(target) > 0 else None
             if not type(data) in (tuple, list):
                 data = (data,)
-            """if cuda:
+            if cuda:
                 data = tuple(d.cuda() for d in data)
-                if target is not None:
-                    target = target.cuda()"""
+                #if target is not None:
+                 #   target = target.cuda()
 
             c2, c4, outputs = model(*data)
+
 
             if type(outputs) not in (tuple, list):
                 outputs = (outputs,)
@@ -146,11 +152,22 @@ def test_epoch(val_loader, model, loss1_fn, loss2_fn, metrics):
             if type(c4) not in (tuple, list):
                 c4 = (c4,)
 
-            if target is not None:
-                target = (target,)
+            #if target is not None:
+             #   target = (target,)
 
-            loss1_outputs = loss1_fn(c4[0], target[0])
-            loss2_outputs = loss2_fn(outputs[0], target[0], c2[0], c4[0])
+            target_ver=[]
+            for el in target:
+              for i in el:
+                i=list(i)
+                target_ver.append([int(a) for a in i])
+
+
+            #finding accuracy
+            target_ver=np.array(target_ver) 
+            
+            target_ver=torch.LongTensor(target_ver)
+            loss1_outputs = loss1_fn(c4[0], target_ver,c2[0],c4[0])
+            loss2_outputs = loss2_fn(outputs[0], target_ver, c2[0], c4[0])
 
             loss1 = loss1_outputs[0] if type(loss1_outputs) in (tuple, list) else loss1_outputs
             loss2 = loss2_outputs[0] if type(loss2_outputs) in (tuple, list) else loss2_outputs
