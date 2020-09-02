@@ -78,13 +78,16 @@ class TripletDataset(Dataset):
     def __getitem__(self, index):
         if self.train=="train":
             img1, label1 = self.train_data[index], self.train_labels[index]#.item()
-            root ='D:/dataScience/ASEP/Fi/fi/'
+            root ='/content/gdrive/My Drive/main/Fi/fi/Train/'
             img1= Image.open(root + img1).convert('RGB')
             positive_index = index
             while positive_index == index:
                 positive_index = np.random.choice(self.label_to_indices[label1])
             negative_label = np.random.choice(list(self.labels_set - set([label1])))
             negative_index = np.random.choice(self.label_to_indices[negative_label])
+
+            label2=self.train_labels[positive_index]
+            label3=self.train_labels[negative_index]
 
             img2 = self.train_data[positive_index]
             img3 = self.train_data[negative_index]
@@ -93,7 +96,7 @@ class TripletDataset(Dataset):
 
         elif self.train=="valid":
             img1, label1 = self.valid_data[index], self.valid_labels[index]#.item()
-            root ='D:/dataScience/ASEP/Fi/fi/'
+            root ='/content/gdrive/My Drive/main/Fi/fi/Valid/'
             img1= Image.open(root + img1).convert('RGB')
             positive_index = index
             while positive_index == index:
@@ -101,13 +104,19 @@ class TripletDataset(Dataset):
             negative_label = np.random.choice(list(self.labels_set - set([label1])))
             negative_index = np.random.choice(self.label_to_indices[negative_label])
 
-            img2 = self.train_data[positive_index]
-            img3 = self.train_data[negative_index]
+            label2=self.valid_labels[positive_index]
+            label3=self.valid_labels[negative_index]
+
+            img2 = self.valid_data[positive_index]
+            img3 = self.valid_data[negative_index]
             img2 = Image.open(root + img2).convert('RGB')
             img3 = Image.open(root + img3).convert('RGB')
 
         else:
-            root = 'D:/dataScience/ASEP/Fi/fi/'
+            label1 = self.test_labels[index]
+            label2=  self.test_labels[self.test_triplets[index][1]]
+            label3=  self.test_labels[self.test_triplets[index][2]]
+            root = '/content/gdrive/My Drive/main/Fi/fi/Test/'
             img1 = self.test_data[self.test_triplets[index][0]]
             img2 = self.test_data[self.test_triplets[index][1]]
             img3 = self.test_data[self.test_triplets[index][2]]
@@ -115,9 +124,9 @@ class TripletDataset(Dataset):
             img2 = Image.open(root + img2).convert('RGB')
             img3 = Image.open(root + img3).convert('RGB')
 
-        img1=img1.resize((256,256))
-        img2=img2.resize((256,256))
-        img3=img3.resize((256,256))
+        img1=img1.resize((224,224))
+        img2=img2.resize((224,224))
+        img3=img3.resize((224,224))
 
         # Crop the center of the image
         """border=((16,16,16,16))
@@ -130,7 +139,8 @@ class TripletDataset(Dataset):
             img2 = self.transform(img2)
             img3 = self.transform(img3)
 
-        return (img1, img2, img3), []
+
+        return (img1,img2,img3), [(label1,label2,label3)]
 
     def __len__(self):
         if self.train=="train":
