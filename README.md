@@ -7,7 +7,7 @@ Pytorch v0.5.0
 FI dataset: [Google](https://drive.google.com/file/d/1pybbqRoh0xlW1ipu2NqsySHS_fxCRrTN/view?usp=sharing)
 
 ## Updates
-I have updated the code for the given above dataset. I have tried to make it as efficient and fast as possible by using GPUs and CPUs appropriately. The particular updates have been elucidated in the next section. The bugs seem to be system dependent somehow, and the code may throw some other errors on your system, hence, some debugging on your part, might still be required. I have tried and tested it on **Google Colab** with GPU and 12 GB RAM, and it seems to work fine with my new changes. The photo snippets of the outputs will be updated in this README in the coming updates. Cheers!
+I have updated the code for the given dataset. I have tried to make it as efficient and fast as possible by using GPUs and CPUs appropriately. The particular updates have been elucidated in the next section. The bugs seem to be system dependent somehow, and the code may throw some other errors on your system, hence, some debugging on your part, might still be required. I have tried and tested it on **Google Colab** with GPU and 12 GB RAM, and it seems to work fine with my new changes. The photo snippets of the outputs will be updated in this README in the coming updates. Cheers!
 
 ## Optimizations and Corrections:
 * Intermediate tensors filling up space in `forward()` of `ResNet()`, when iterated using
